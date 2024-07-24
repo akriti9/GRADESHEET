@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Marksheet</title>
+    <style>
+        table {
+            width: 70%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+
+<?php
+include 'db_config.php';
+
+// Function to calculate grade based on marks
+function calculate_grade($marks) {
+    if ($marks >= 90) {
+        return 'A+';
+    } elseif ($marks >= 80) {
+        return 'A';
+    } elseif ($marks >= 70) {
+        return 'B+';
+    } elseif ($marks >= 60) {
+        return 'B';
+    } elseif ($marks >= 50) {
+        return 'C+';
+    } elseif ($marks >= 40) {
+        return 'C';
+    } else {
+        return 'FAIL';
+    }
+}
+
+// Check if form has been submitted
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Retrieve roll number from form submission
+    $roll_no = $_POST['roll_no'];
+
+    // Query to fetch student data for the entered roll number
+    $sql = "SELECT * FROM student_report WHERE Roll_no='$roll_no'";
+    $result = $conn->query($sql);
+
+    if ($result->num_rows > 0) {
+        // Fetch the student data
+        $row = $result->fetch_assoc();
+        $student_name = $row['Userame'];
+        
+        echo "<h2>Student Name: $student_name</h2>";
+        echo "<h3>Roll No: $roll_no</h3>";
+
+        // Initialize total variables
+        $total_theory_marks = 0;
+        $total_practical_marks = 0;
+
+        echo "<table>
+                <thead>
+                    <tr>
+                        <th rowspan='2'>Subject</th>
+                        <th colspan='2'>Marks</th>
+                        <th rowspan='2'>Grade</th>
+                    </tr>
+                    <tr>
+                        <th>Theory</th>
+                        <th>Practical</th>
+                    </tr>
+                </thead>
+                <tbody>";
+
+        // Subjects and their respective columns in the database
+        $subjects = [
+            'Computer Networks' => ['CN_THEORY', 'CN_PRACTICAL'],
+            'Machine Learning' => ['ML', 'ML_PRACTICALS'],
+            'Data Analysis' => ['DA', 'DATA_ANALYSIS_PRACTICALS'],
+            'Compiler Design' => ['CD', 'COMPILER_DESIGN'],
+        ];
+
+        foreach ($subjects as $subject => $marks_columns) {
+            $theory_marks = isset($row[$marks_columns[0]]) ? $row[$marks_columns[0]] : 0;
+            $practical_marks = isset($row[$marks_columns[1]]) ? $row[$marks_columns[1]] : 0;
+            $theory_grade = calculate_grade($theory_marks);
+            $practical_grade = calculate_grade($practical_marks);
+
+            // Add to total marks
+            $total_theory_marks += $theory_marks;
+            $total_practical_marks += $practical_marks;
+
+            echo "<tr>
+                    <td>$subject</td>
+                    <td>$theory_marks</td>
+                    <td>$practical_marks</td>
+                    <td>$theory_grade</td>
+                  </tr>";
+        }
+
+        echo "</tbody></table>";
+
+        // Calculate the total marks
+        $total_marks = ($total_theory_marks + $total_practical_marks) / count($subjects);
+
+        // Display total marks, SGPA, CGPA (if available)
+        echo "<h3>Total Marks: $total_marks</h3>";
+
+        if (isset($row['SGPA'])) {
+            echo "<h3>SGPA: {$row['SGPA']}</h3>";
+        }
+
+        if (isset($row['CGPA'])) {
+            echo "<h3>CGPA: {$row['CGPA']}</h3>";
+        }
+
+    } else {
+        echo "No results found for Roll No: $roll_no";
+    }
+} else {
+    // Display the form to enter roll number
+    echo "<form method='post' action='" . htmlspecialchars($_SERVER["PHP_SELF"]) . "'>";
+    echo "<label for='roll_no'>Enter Roll Number:</label>";
+    echo "<input type='text' id='roll_no' name='roll_no' required>";
+    echo "<input type='submit' value='Show Result'>";
+    echo "</form>";
+}
+
+$conn->close();
+?>
+
+</body>
+</html>
+/*<?php
+
+$id=$_GET['Id'];
+echo $id;
+
+echo Updated theory 
+?>
+<input type="hidden" id="roll_no" name="roll_no" value="<?php echo htmlspecialchars($_GET['roll_no']); ?>">
